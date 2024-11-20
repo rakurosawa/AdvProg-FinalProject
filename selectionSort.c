@@ -1,7 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/time.h>
 
-#define SIZE_OF_ARRAY 10
+#define SIZE_OF_ARRAY 2048
 
 // adopted from https://www.geeksforgeeks.org/selection-sort-algorithm-2/
 void selectionSort(int* array){
@@ -32,12 +33,23 @@ void selectionSort(int* array){
     }
 }
 
+double get_clock() {
+    struct timeval tv; int ok;
+    ok = gettimeofday(&tv, (void *) 0);
+    if (ok<0) { 
+        printf("gettimeofday error"); 
+        }
+    return (tv.tv_sec * 1.0 + tv.tv_usec * 1.0E-6);
+}
+
 int main(){
 
     // initialize the array
     int *input;
     input = (int*)malloc(sizeof(int)*SIZE_OF_ARRAY);
 
+    // initialize time points
+    double t0, t1;
 
     for (int i = 0; i < SIZE_OF_ARRAY; i ++){
         input[i] = SIZE_OF_ARRAY - i;
@@ -50,14 +62,28 @@ int main(){
     // }
     // printf("\n");
 
+    // get start time
+    t0 = get_clock();
     selectionSort(input);
+    // get stop time
+    t1 = get_clock();
 
-    // uncomment to see array output after program run
-    printf("output: ");
-    for (int i = 0; i < SIZE_OF_ARRAY; i ++){
-        printf("%d  ", input[i]);
+    // get and print total runtime
+    printf("time: %f ns\n", 1000000000.0*(t1-t0));
+
+    // // uncomment to see array output after program run
+    // printf("output: ");
+    // for (int i = 0; i < SIZE_OF_ARRAY; i ++){
+    //     printf("%d  ", input[i]);
+    // }
+    // printf("\n");
+
+    // check the array for errors
+    for (int j = 0; j < SIZE_OF_ARRAY; j ++){
+        if (input[j] != j + 1){
+            printf("error of unexpected value at index %d\n", j);
+        }
     }
-    printf("\n");
 
     free(input);
     return 0;
