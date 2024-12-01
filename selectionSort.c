@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 
-#define SIZE_OF_ARRAY 2048
+#define SIZE_OF_ARRAY 1024 // test values of 1024, 32768, 65536, 131072, 262144, 524288, 1048576 for time and scalability
 
 // adopted from https://www.geeksforgeeks.org/selection-sort-algorithm-2/
 void selectionSort(int* array){
@@ -24,12 +24,13 @@ void selectionSort(int* array){
         // printf("swapping %d and %d\n", temp, array[i]);
         array[minIdx] = temp;
 
-        // // uncomment to see array swap after each pass
-        // printf("array at i = %d : ", i);
-        // for (int k = 0; k < SIZE_OF_ARRAY; k ++){
-        //     printf("%d  ", array[k]);
-        // }
-        // printf("\n");
+    }
+}
+
+void generateRandomArray(int arr[], int size, int max_value, unsigned int seed) {
+    srand(seed); // Set the seed for reproducibility
+    for (int i = 0; i < size; i++) {
+        arr[i] = rand() % (max_value + 1); // Generate a random number between 0 and max_value
     }
 }
 
@@ -45,47 +46,43 @@ double get_clock() {
 int main(){
 
     // initialize the array
-    int *input;
-    input = (int*)malloc(sizeof(int)*SIZE_OF_ARRAY);
+    int *array;
+    array = (int*)malloc(sizeof(int)*SIZE_OF_ARRAY);
 
     // initialize time points
     double t0, t1;
 
-    for (int i = 0; i < SIZE_OF_ARRAY; i ++){
-        input[i] = SIZE_OF_ARRAY - i;
-    }
+    // Set up the array size and max value
+    int max_value = 10000000;
+    unsigned int seed = 42; // Seed for reproducibility
 
-    // // uncomment to see array input prior to program run
+    // Generate a random array of integers for testing
+    generateRandomArray(array, SIZE_OF_ARRAY, max_value, seed);
+
+    // // uncomment to see array input prior to program run (beware large arrays)
     // printf("input: ");
     // for (int i = 0; i < SIZE_OF_ARRAY; i ++){
-    //     printf("%d  ", input[i]);
+    //     printf("%d  ", array[i]);
     // }
     // printf("\n");
 
     // get start time
     t0 = get_clock();
-    selectionSort(input);
+    selectionSort(array);
     // get stop time
     t1 = get_clock();
 
-    // get and print total runtime
-    printf("time: %f ns\n", 1000000000.0*(t1-t0));
+    // get and print total runtime (in seconds)
+    printf("time: %f sec\n", (t1-t0));
 
-    // // uncomment to see array output after program run
+    // // uncomment to see array output after program run (beware large arrays)
     // printf("output: ");
     // for (int i = 0; i < SIZE_OF_ARRAY; i ++){
-    //     printf("%d  ", input[i]);
+    //     printf("%d  ", array[i]);
     // }
     // printf("\n");
 
-    // check the array for errors
-    for (int j = 0; j < SIZE_OF_ARRAY; j ++){
-        if (input[j] != j + 1){
-            printf("error of unexpected value at index %d\n", j);
-        }
-    }
-
-    free(input);
+    free(array);
     return 0;
 
 }
