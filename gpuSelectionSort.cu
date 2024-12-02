@@ -1,76 +1,91 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/time.h>
 
-#define SIZE_OF_ARRAY 16
-#define NUM_THDS 8
-#define BLOCK_SIZE 4
+#define SIZE_OF_ARRAY 1024 
+#define BLOCK_SIZE 512 
 
 
 __global__ void gpuSelectionSort(int* array){
     __shared__ int temp[SIZE_OF_ARRAY];
-
     int globalIdx = threadIdx.x + (BLOCK_SIZE * blockIdx.x);
-    //printf("%d ", globalIdx);
 
-    for (int i = 0; i < SIZE_OF_ARRAY; i ++){
-        __syncthreads();
+    __syncthreads();
 
+    for (int i = 0; i < SIZE_OF_ARRAY; i ++){ 
         int minIdx = i;
 
-        //printf("thread: %d\n", globalIdx);
+        int arrayIdx1 = (globalIdx * 2) + i;
+        int arrayIdx2 = arrayIdx1 + 1;
 
-        int arrIdx1 = 2 * globalIdx + i;
-        int arrIdx2 = arrIdx1 + 1;
-        //printf("arrIdx1: %d\n", arrIdx1);
-
-        if (arrIdx1 >= SIZE_OF_ARRAY){
+        // load values to temp
+        if (arrayIdx1 < SIZE_OF_ARRAY){
+            temp[globalIdx * 2] = array[arrayIdx1];
+        }
+        else{ // buffer for if index is out of reach
             temp[globalIdx * 2] = array[SIZE_OF_ARRAY - 1];
         }
-        else {
-            temp[globalIdx * 2] = array[arrIdx1];
+        if (arrayIdx2 < SIZE_OF_ARRAY){
+            temp[(globalIdx * 2) + 1] = array[arrayIdx2];
         }
+        else{ // buffer for if index is out of reach
+            temp[(globalIdx * 2) + 1] = array[SIZE_OF_ARRAY - 1];
+        }
+
+        __syncthreads();
         
-        if (arrIdx2 >= SIZE_OF_ARRAY){
-            temp[globalIdx * 2 + 1] = array[SIZE_OF_ARRAY - 1];
+        // reduction with less thread division
+        for (int j = (SIZE_OF_ARRAY/2); j > 0; j /= 2){
+            __syncthreads();
+            if (globalIdx < j){
+                int idx1 = globalIdx;
+                int val1 = temp[idx1];
+                int idx2 = idx1 + j;
+                int val2 = temp[idx2];
+
+                if (val1 < val2){
+                    temp[idx1] = val1;
+                }
+                else {
+                    temp[idx1] = val2;
+                }
+            }   
         }
-        else {
-            temp[globalIdx * 2 + 1] = array[arrIdx2];
+
+        // find the index of the minimum
+        for (int k = 0; k < SIZE_OF_ARRAY; k ++){
+            if (array[k] == temp[0]){
+                minIdx = k;
+            }
         }
 
-        // for (int j = NUM_THDS; j > 0; j /= 2){
-        //     __syncthreads();
-        //     if (globalIdx < j){
-        //         int idx1 = globalIdx;
-        //         int val1 = temp[idx1];
-        //         int idx2 = idx1 + 1;
-        //         int val2 = temp[idx2];
-
-        //         if (val1 < val2){
-        //             temp[idx1] = val1;
-        //         }
-        //         else {
-        //             temp[idx1] = val2;
-        //         }
-        //     }   
-        // }
-
-        // for (int k = 0; k < SIZE_OF_ARRAY; k ++){
-        //     if (array[k] == temp[0]){
-        //         minIdx = k;
-        //     }
-        // }
-
-        // if (temp[0] <= array[i]){
-        //     int tempVal = array[i];
-        //     array[i] = array[minIdx];
-        //     array[minIdx] = tempVal;
-        // }
+        // swap values if necessary
+        if (temp[0] <= array[i]){
+            int tempVal = array[i];
+            array[i] = array[minIdx];
+            array[minIdx] = tempVal;
+        }
 
     }
+
     __syncthreads();
 }
     
+void generateRandomArray(int arr[], int size, int max_value, unsigned int seed) {
+    srand(seed); // Set the seed for reproducibility
+    for (int i = 0; i < size; i++) {
+        arr[i] = rand() % (max_value + 1); // Generate a random number between 0 and max_value
+    }
+}
 
+double get_clock() {
+    struct timeval tv; int ok;
+    ok = gettimeofday(&tv, (void *) 0);
+    if (ok<0) { 
+        printf("gettimeofday error"); 
+        }
+    return (tv.tv_sec * 1.0 + tv.tv_usec * 1.0E-6);
+}
 
 int main(){
 
@@ -78,33 +93,39 @@ int main(){
     int *array;
     cudaMallocManaged(&array, (SIZE_OF_ARRAY)*sizeof(int));
 
-    // set array values
-    for (int i = 0; i < SIZE_OF_ARRAY; i ++){
-        array[i] = SIZE_OF_ARRAY - i;
-    }
+    // initialize time points
+    double t0, t1;
 
-    // uncomment to see array input prior to program run
-    for (int i = 0; i < SIZE_OF_ARRAY; i ++){
-        printf("%d  ", array[i]);
-    }
-    printf("\n");
+    // Set up the array size and seed
+    int max_value = 10; //10000000;
+    unsigned int seed = 42;
 
-    // <<< number of blocks, size of each block >>>
-    gpuSelectionSort<<<NUM_THDS/BLOCK_SIZE, BLOCK_SIZE>>>(array);
-    cudaDeviceSynchronize();
+    // Generate a random array of integers for testing
+    generateRandomArray(array, SIZE_OF_ARRAY, max_value, seed);
 
-    // uncomment to see array output after program run
-    for (int i = 0; i < SIZE_OF_ARRAY; i ++){
-        printf("%d  ", array[i]);
-    }
-    printf("\n");
-
-    // // check the array for errors
-    // for (int j = 0; j < SIZE_OF_ARRAY; j ++){
-    //     if (array[j] != j + 1){
-    //         printf("error of unexpected value at index %d\n", j);
-    //     }
+    // // uncomment to see array input prior to program run (beware large arrays)
+    // for (int i = 0; i < SIZE_OF_ARRAY; i ++){
+    //     printf("%d  ", array[i]);
     // }
+    // printf("\n");
+
+    // get start time
+    t0 = get_clock();
+    // <<< number of blocks, size of each block >>>
+    gpuSelectionSort<<<(SIZE_OF_ARRAY/2)/BLOCK_SIZE, BLOCK_SIZE>>>(array);
+    cudaDeviceSynchronize();
+    // get stop time
+    t1 = get_clock();
+
+    // get and print total runtime (in seconds)
+    printf("time: %f sec\n", (t1-t0));
+
+    // // uncomment to see array output after program run (beware large arrays)
+    // for (int i = 0; i < SIZE_OF_ARRAY; i ++){
+    //     printf("%d  ", array[i]);
+    // }
+    // printf("\n");
 
     cudaFree(array);
+    return 0;
 }

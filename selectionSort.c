@@ -52,9 +52,9 @@ int main(){
     // initialize time points
     double t0, t1;
 
-    // Set up the array size and max value
+    // Set up the array size and seed
     int max_value = 10000000;
-    unsigned int seed = 42; // Seed for reproducibility
+    unsigned int seed = 42;
 
     // Generate a random array of integers for testing
     generateRandomArray(array, SIZE_OF_ARRAY, max_value, seed);
@@ -84,5 +84,4 @@ int main(){
 
     free(array);
     return 0;
-
 }
