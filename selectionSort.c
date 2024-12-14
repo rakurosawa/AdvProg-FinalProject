@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 
-#define SIZE_OF_ARRAY 1024 // test values of 1024, 32768, 65536, 131072, 262144, 524288, 1048576 for time and scalability
+#define SIZE_OF_ARRAY 10 // test values of 1024, 32768, 65536, 131072, 262144, 524288, 1048576 for time and scalability
 
 // adopted from https://www.geeksforgeeks.org/selection-sort-algorithm-2/
 void selectionSort(int* array){
@@ -34,6 +34,18 @@ void generateRandomArray(int arr[], int size, int max_value, unsigned int seed) 
     }
 }
 
+void generateInvertSortArray(int* arr, int size){
+    for (int i = 0; i < size; i++){
+        arr[i] = size - i;
+    }
+}
+
+void generatePreSortedArray(int* arr, int size){
+    for (int i = 0; i < size; i++){
+        arr[i] = i;
+    }
+}
+
 double get_clock() {
     struct timeval tv; int ok;
     ok = gettimeofday(&tv, (void *) 0);
@@ -56,15 +68,21 @@ int main(){
     int max_value = 10000000;
     unsigned int seed = 42;
 
-    // Generate a random array of integers for testing
-    generateRandomArray(array, SIZE_OF_ARRAY, max_value, seed);
+    // // Generate a random array of integers for testing
+    // generateRandomArray(array, SIZE_OF_ARRAY, max_value, seed);
 
-    // // uncomment to see array input prior to program run (beware large arrays)
-    // printf("input: ");
-    // for (int i = 0; i < SIZE_OF_ARRAY; i ++){
-    //     printf("%d  ", array[i]);
-    // }
-    // printf("\n");
+    // Generate an inversely sorted array of integers for testing
+    generateInvertSortArray(array, SIZE_OF_ARRAY);
+
+    // // Generate an already sorteed array of integers for testing
+    // generatePreSortedArray(array, SIZE_OF_ARRAY);
+
+    // uncomment to see array input prior to program run (beware large arrays)
+    printf("input: ");
+    for (int i = 0; i < SIZE_OF_ARRAY; i ++){
+        printf("%d  ", array[i]);
+    }
+    printf("\n");
 
     // get start time
     t0 = get_clock();
