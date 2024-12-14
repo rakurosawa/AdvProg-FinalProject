@@ -2,13 +2,11 @@
 #include <stdio.h>
 #include <sys/time.h>
 
-#define SIZE_OF_ARRAY 1024
-#define BLOCK_SIZE 512
-
+#define SIZE_OF_ARRAY 1000
 
 __global__ void gpuSelectionSort(int* array){
     __shared__ int temp[SIZE_OF_ARRAY];
-    int globalIdx = threadIdx.x + (BLOCK_SIZE * blockIdx.x);
+    int globalIdx = threadIdx.x + ((SIZE_OF_ARRAY/2) * blockIdx.x);
 
     __syncthreads();
 
@@ -78,6 +76,18 @@ void generateRandomArray(int arr[], int size, int max_value, unsigned int seed) 
     }
 }
 
+void generateInvertSortArray(int* arr, int size){
+    for (int i = 0; i < size; i++){
+        arr[i] = size - i;
+    }
+}
+
+void generatePreSortedArray(int* arr, int size){
+    for (int i = 0; i < size; i++){
+        arr[i] = i;
+    }
+}
+
 double get_clock() {
     struct timeval tv; int ok;
     ok = gettimeofday(&tv, (void *) 0);
@@ -97,11 +107,17 @@ int main(){
     double t0, t1;
 
     // Set up the array size and seed
-    int max_value = 10; //10000000;
+    int max_value = 10000000;
     unsigned int seed = 42;
 
     // Generate a random array of integers for testing
     generateRandomArray(array, SIZE_OF_ARRAY, max_value, seed);
+
+    // // Generate an inversely sorted array of integers for testing
+    // generateInvertSortArray(array, SIZE_OF_ARRAY);
+
+    // // Generate an already sorteed array of integers for testing
+    // generatePreSortedArray(array, SIZE_OF_ARRAY);
 
     // // uncomment to see array input prior to program run (beware large arrays)
     // for (int i = 0; i < SIZE_OF_ARRAY; i ++){
@@ -112,7 +128,7 @@ int main(){
     // get start time
     t0 = get_clock();
     // <<< number of blocks, size of each block >>>
-    gpuSelectionSort<<<(SIZE_OF_ARRAY/2)/BLOCK_SIZE, BLOCK_SIZE>>>(array);
+    gpuSelectionSort<<<1, SIZE_OF_ARRAY/2>>>(array);
     cudaDeviceSynchronize();
     // get stop time
     t1 = get_clock();

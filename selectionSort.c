@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 
-#define SIZE_OF_ARRAY 10 // test values of 1024, 32768, 65536, 131072, 262144, 524288, 1048576 for time and scalability
+#define SIZE_OF_ARRAY 1000000
 
 // adopted from https://www.geeksforgeeks.org/selection-sort-algorithm-2/
 void selectionSort(int* array){
@@ -71,18 +71,18 @@ int main(){
     // // Generate a random array of integers for testing
     // generateRandomArray(array, SIZE_OF_ARRAY, max_value, seed);
 
-    // Generate an inversely sorted array of integers for testing
-    generateInvertSortArray(array, SIZE_OF_ARRAY);
+    // // Generate an inversely sorted array of integers for testing
+    // generateInvertSortArray(array, SIZE_OF_ARRAY);
 
-    // // Generate an already sorteed array of integers for testing
-    // generatePreSortedArray(array, SIZE_OF_ARRAY);
+    // Generate an already sorteed array of integers for testing
+    generatePreSortedArray(array, SIZE_OF_ARRAY);
 
-    // uncomment to see array input prior to program run (beware large arrays)
-    printf("input: ");
-    for (int i = 0; i < SIZE_OF_ARRAY; i ++){
-        printf("%d  ", array[i]);
-    }
-    printf("\n");
+    // // uncomment to see array input prior to program run (beware large arrays)
+    // printf("input: ");
+    // for (int i = 0; i < SIZE_OF_ARRAY; i ++){
+    //     printf("%d  ", array[i]);
+    // }
+    // printf("\n");
 
     // get start time
     t0 = get_clock();
