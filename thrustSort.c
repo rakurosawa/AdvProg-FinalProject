@@ -63,7 +63,7 @@ void generateRandomArray(int arr[], int size, int max_value, unsigned int seed) 
 // Driver code
 int main() {
     // Set up the array size and max value
-    int size = 1048576000;
+    int size = 10000000;
     int max_value = 10000000;
     unsigned int seed = 42; // Seed for reproducibility
 
