@@ -13,7 +13,7 @@ int getMax(int arr[], int n) {
 
 // A function to do counting sort of arr[] according to the digit represented by exp
 void countSort(int arr[], int n, int exp) {
-    int output[n]; // Output array
+    int *output = (int*)malloc(n * sizeof(int)); // Output array
     int count[10] = {0}; // Initialize count array as 0
 
     // Store count of occurrences in count[]
@@ -33,6 +33,8 @@ void countSort(int arr[], int n, int exp) {
     // Copy the output array to arr[], so that arr[] now contains sorted numbers according to current digit
     for (int i = 0; i < n; i++)
         arr[i] = output[i];
+
+    free(output); // Free the dynamically allocated memory
 }
 
 // The main function to sort arr[] of size n using Radix Sort
@@ -45,7 +47,7 @@ void radixSort(int arr[], int n) {
         countSort(arr, n, exp);
 }
 
-// A utility function to print an array
+// A utility function to print an array (commented out for large arrays)
 void printArray(int arr[], int n) {
     for (int i = 0; i < n; i++)
         printf("%d ", arr[i]);
@@ -60,31 +62,41 @@ void generateRandomArray(int arr[], int size, int max_value, unsigned int seed) 
     }
 }
 
-// Driver code
+// Function to get current time in nanoseconds
+long long getNanoseconds() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts); // CLOCK_MONOTONIC for elapsed time
+    return (long long)ts.tv_sec * 1000000000 + ts.tv_nsec;
+}
+
 int main() {
     // Set up the array size and max value
-    int size = 10000000;
-    int max_value = 10000000;
+    int size = 1000;  // 10 million elements
+    int max_value = 1000000000; // Arbitrary large number for testing
     unsigned int seed = 42; // Seed for reproducibility
 
     // Allocate memory for the array
     int* arr = (int*)malloc(size * sizeof(int));
+    if (arr == NULL) {
+        printf("Memory allocation failed!\n");
+        return 1;
+    }
 
     // Generate a random array of integers
     generateRandomArray(arr, size, max_value, seed);
 
-    // Record the start time
-    clock_t start_time = clock();
+    // Record the start time (in nanoseconds)
+    long long start_time = getNanoseconds();
 
     // Perform Radix Sort
     radixSort(arr, size);
 
-    // Record the end time
-    clock_t end_time = clock();
+    // Record the end time (in nanoseconds)
+    long long end_time = getNanoseconds();
 
-    // Calculate and print the time taken for radix sort
-    double elapsed_time = ((double)(end_time - start_time)) / CLOCKS_PER_SEC;
-    printf("Time taken for radixSort: %.6f seconds\n", elapsed_time);
+    // Calculate and print the time taken for radix sort in nanoseconds
+    long long elapsed_time = end_time - start_time;
+    printf("Time taken for radix sort (10,000,000 elements): %lld nanoseconds\n", elapsed_time);
 
     // Optionally print the sorted array (commented out to avoid printing large arrays)
     // printArray(arr, size);
