@@ -1,26 +1,22 @@
-#pragma once
-#ifdef __INTELLISENSE__
-void __syncthreads();
-#endif
-
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
-#include <chrono>
+#include <chrono> // For high-resolution clock
 #include <sys/time.h>
 
 using namespace std;
 using namespace std::chrono;
 
-#define WSIZE 10000000  // Set array size to 10,000,000
+#define WSIZE 1000000  // Set array size to 10,000,000
 #define LOOPS 10         // Set to 1 for a single run
 #define UPPER_BIT 10
 #define LOWER_BIT 0
 
-__device__ unsigned int ddata[WSIZE];
+// Use int type instead of unsigned int to match radixsort function
+__device__ int ddata[WSIZE]; // Device data array changed to int
 
 template <typename T, unsigned S>
 inline unsigned arraysize(const T(&v)[S])
@@ -49,7 +45,7 @@ __device__ int getMax(int arr[], int n)
 
 __device__ void countSort(int arr[], int n, int exp)
 {
-    int output[n]; // Output array
+    int output[1024]; // Fixed-size output array, max size 1024 (adjustable if needed)
     int i, count[10] = { 0 };
 
     // Store count of occurrences in count[]
@@ -93,9 +89,8 @@ __global__ void parallelRadix()
     // Load from global into shared variable
     unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
     if (tid < WSIZE) {
-        unsigned int mydata = ddata[tid];
-        // Perform radix sort on the data
-        radixsort(ddata, WSIZE);
+        // Removed unused 'mydata' variable
+        radixsort(ddata, WSIZE); // Perform radix sort on the data
     }
 }
 
@@ -105,13 +100,15 @@ double get_clock() {
     if (ok < 0) { 
         printf("gettimeofday error"); 
     }
-    return (tv.tv_sec * 1. 0 + tv.tv_usec * 1.0E-6);
+    return (tv.tv_sec * 1.0 + tv.tv_usec * 1.0E-6);
 }
 
 int main() {
     unsigned int hdata[WSIZE];  // Host array to store data
     float totalTime = 0;
-    double start = get_clock();
+
+    // Start timing using chrono high-resolution clock for nanoseconds
+    auto start_time = high_resolution_clock::now(); 
 
     for (int lcount = 0; lcount < LOOPS; lcount++) {
         // Fill array with random elements
@@ -120,29 +117,32 @@ int main() {
         }
 
         // Copy data from host to device
-        cudaMemcpyToSymbol(ddata, hdata, WSIZE * sizeof(unsigned int));
+        cudaMemcpyToSymbol(ddata, hdata, WSIZE * sizeof(int)); // Ensure data is copied correctly
 
-        // Execution time measurement, that point starts the clock
-        high_resolution_clock::time_point t1 = high_resolution_clock::now();
+        // Execution time measurement start (kernel launch)
+        auto kernel_start = high_resolution_clock::now();
+
         parallelRadix<<<(WSIZE + 255) / 256, 256>>>();
         // Make kernel function synchronous
         cudaDeviceSynchronize();
-        // Execution time measurement, that point stops the clock
-        high_resolution_clock::time_point t2 = high_resolution_clock::now();
 
-        // Execution time measurement, that is the result
-        auto duration = duration_cast<milliseconds>(t2 - t1).count();
-        totalTime += (float)duration / 1000.00;
+        // Execution time measurement end (kernel completion)
+        auto kernel_end = high_resolution_clock::now();
+
+        // Calculate and store elapsed time for the current loop
+        auto duration = duration_cast<nanoseconds>(kernel_end - kernel_start).count();
+        totalTime += duration;
 
         // Copy data from device to host
-        cudaMemcpyFromSymbol(hdata, ddata, WSIZE * sizeof(unsigned int));
+        cudaMemcpyFromSymbol(hdata, ddata, WSIZE * sizeof(int)); // Ensure data is copied correctly
     }
 
-    double end = get_clock();
-    printf("Time per call: %f ns\n", (end - start));
-    printf("Parallel Radix Sort:\n");
-    printf("Array size = %d\n", WSIZE);
-    printf("Time elapsed = %f seconds\n", totalTime);
+    // End timing using chrono high-resolution clock
+    auto end_time = high_resolution_clock::now();
+    auto total_duration = duration_cast<nanoseconds>(end_time - start_time).count();
+
+    printf("Total time elapsed for %d iterations: %lld ns\n", LOOPS, total_duration);
+    printf("Average time per iteration: %lld ns\n", totalTime / LOOPS);
 
     return 0;
 }
