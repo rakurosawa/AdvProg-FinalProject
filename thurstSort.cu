@@ -37,7 +37,6 @@ int main() {
     // Record the start time using high-precision timer (chrono)
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    // Copy the array to device memory
     thrust::device_vector<int> d_A(h_A, h_A + size);
 
     // Perform sorting using thrust::sort on the device (GPU)

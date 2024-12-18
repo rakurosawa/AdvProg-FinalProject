@@ -77,19 +77,15 @@ __device__ void radixsort(int arr[], int n)
     // Find the maximum number to know number of digits
     int m = getMax(arr, n);
 
-    // Do counting sort for every digit. Note that instead
-    // of passing digit number, exp is passed. exp is 10^i
-    // where i is current digit number
+    // Do counting sort for every digit. 
     for (int exp = 1; m / exp > 0; exp *= 10)
         countSort(arr, n, exp);
 }
 
 __global__ void parallelRadix()
 {
-    // Load from global into shared variable
     unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
     if (tid < WSIZE) {
-        // Removed unused 'mydata' variable
         radixsort(ddata, WSIZE); // Perform radix sort on the data
     }
 }
@@ -107,7 +103,6 @@ int main() {
     unsigned int hdata[WSIZE];  // Host array to store data
     float totalTime = 0;
 
-    // Start timing using chrono high-resolution clock for nanoseconds
     auto start_time = high_resolution_clock::now(); 
 
     for (int lcount = 0; lcount < LOOPS; lcount++) {
@@ -116,24 +111,19 @@ int main() {
             hdata[i] = rand() % 1024;  // Random values in the range of 0 to 1023
         }
 
-        // Copy data from host to device
         cudaMemcpyToSymbol(ddata, hdata, WSIZE * sizeof(int)); // Ensure data is copied correctly
 
-        // Execution time measurement start (kernel launch)
         auto kernel_start = high_resolution_clock::now();
 
         parallelRadix<<<(WSIZE + 255) / 256, 256>>>();
-        // Make kernel function synchronous
+        // run kernel
         cudaDeviceSynchronize();
 
-        // Execution time measurement end (kernel completion)
         auto kernel_end = high_resolution_clock::now();
 
-        // Calculate and store elapsed time for the current loop
         auto duration = duration_cast<nanoseconds>(kernel_end - kernel_start).count();
         totalTime += duration;
 
-        // Copy data from device to host
         cudaMemcpyFromSymbol(hdata, ddata, WSIZE * sizeof(int)); // Ensure data is copied correctly
     }
 
